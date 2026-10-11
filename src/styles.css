@@ -1,0 +1,138 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-script: "Allura", "Cormorant Garamond", cursive;
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --shadow-soft: 0 10px 30px -12px rgba(63, 66, 52, 0.12);
+  --shadow-lift: 0 20px 50px -20px rgba(63, 66, 52, 0.25);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-terracotta: var(--terracotta);
+  --color-sage: var(--sage);
+  --color-sand: var(--sand);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Paleta Cabañas Nativa Coliumo (tomada del logo y publicaciones) */
+  --radius: 0.5rem;
+  --background: #f3ece1; /* crema */
+  --foreground: #3f4234; /* oliva oscuro */
+  --card: #faf6ef;
+  --card-foreground: #3f4234;
+  --popover: #faf6ef;
+  --popover-foreground: #3f4234;
+  --primary: #646d4f; /* verde salvia */
+  --primary-foreground: #faf6ef;
+  --secondary: #e9e1d1; /* arena */
+  --secondary-foreground: #3f4234;
+  --muted: #e9e1d1;
+  --muted-foreground: #6f6a5a;
+  --accent: #dcd6bf;
+  --accent-foreground: #3f4234;
+  --destructive: #b5533f;
+  --destructive-foreground: #faf6ef;
+  --border: #d9cfbd;
+  --input: #d9cfbd;
+  --ring: #646d4f;
+  --terracotta: #b0764a; /* acento, textos en cursiva */
+  --sage: #8b9474;
+  --sand: #e4dccb;
+  --chart-1: #646d4f;
+  --chart-2: #b0764a;
+  --chart-3: #8b9474;
+  --chart-4: #d9b48f;
+  --chart-5: #3f4234;
+  --sidebar: #faf6ef;
+  --sidebar-foreground: #3f4234;
+  --sidebar-primary: #646d4f;
+  --sidebar-primary-foreground: #faf6ef;
+  --sidebar-accent: #e9e1d1;
+  --sidebar-accent-foreground: #3f4234;
+  --sidebar-border: #d9cfbd;
+  --sidebar-ring: #646d4f;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+}
+
+@utility text-script {
+  font-family: var(--font-script);
+  font-weight: 400;
+  color: var(--terracotta);
+  line-height: 1;
+}
+
+@utility text-hero {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+@utility shadow-lift {
+  box-shadow: var(--shadow-lift);
+}
