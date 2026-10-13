@@ -1,46 +1,40 @@
+/**
+ * Datos del negocio.
+ * PENDIENTE confirmar con los dueños: horarios de check-in/out y si el fono recibe WhatsApp.
+ */
 export const CHECK_IN = "16:00";
 export const CHECK_OUT = "14:00";
 
-/**
- * Datos del negocio.
- * PENDIENTE: completar con los datos reales del dueño antes de publicar.
- */
-export const OWNER_WHATSAPP = ""; // formato internacional sin +, ej: 56912345678
-export const ADMIN_EMAIL = ""; // correo de contacto y del administrador
-export const BUSINESS_NAME = "Cabañas Nativa Coliumo";
-export const INSTAGRAM = "cabanasnativacoliumo";
+export const BUSINESS_NAME = "Lugar Secreto";
+export const LOCATION = "Hualqui, Región del Biobío";
+export const OWNER_PHONE = "56940037495"; // formato internacional sin +
+export const OWNER_WHATSAPP = OWNER_PHONE;
+export const INSTAGRAM = "lugarsecretohualqui";
+export const FACEBOOK = "Lugar Secreto";
+export const ADMIN_EMAIL = ""; // PENDIENTE: correo de contacto
 
-export type CabinId = "chica" | "grande";
+export type CabinId = string;
 
 export type Cabin = {
   id: CabinId;
   name: string;
   baseGuests: number; // personas incluidas en el precio
   maxGuests: number;
-  priceBase: number; // solo cabaña, por noche
-  priceTinaja: number; // con tinaja, por noche
+  priceBase: number; // por noche
+  priceTinaja: number; // si es mayor que priceBase, la tinaja se ofrece como opción pagada
   extraPerson: number; // por persona sobre la base, por noche
 };
 
-/** Tarifas por defecto (las reales se leen de Supabase y se editan en /admin). */
+/** Valores por defecto (los reales se leen de Supabase y se editan en /admin). */
 export const DEFAULT_CABINS: Cabin[] = [
   {
-    id: "chica",
-    name: "Cabaña 2 a 3 personas",
+    id: "lugar-secreto",
+    name: "Cabaña con tinaja",
     baseGuests: 2,
-    maxGuests: 3,
+    maxGuests: 2,
     priceBase: 60000,
-    priceTinaja: 80000,
-    extraPerson: 10000,
-  },
-  {
-    id: "grande",
-    name: "Cabaña 4 a 6 personas",
-    baseGuests: 4,
-    maxGuests: 6,
-    priceBase: 80000,
-    priceTinaja: 100000,
-    extraPerson: 10000,
+    priceTinaja: 60000,
+    extraPerson: 0,
   },
 ];
 
@@ -66,12 +60,15 @@ export type Expense = {
   date: string; // yyyy-mm-dd
 };
 
-/** Ofertas por cabaña: { chica: { "2026-10-20": 50000 } } */
+/** Ofertas por cabaña: { "lugar-secreto": { "2026-10-20": 50000 } } */
 export type Offers = Record<CabinId, Record<string, number>>;
 export type DaysByCabin = Record<CabinId, string[]>;
 
-export const cabinById = (cabins: Cabin[], id: CabinId) =>
-  cabins.find((c) => c.id === id) ?? DEFAULT_CABINS.find((c) => c.id === id)!;
+export const cabinById = (cabins: Cabin[], id: CabinId): Cabin =>
+  cabins.find((c) => c.id === id) ?? cabins[0] ?? DEFAULT_CABINS[0]!;
+
+/** La tinaja es opcional solo si cuesta más que la tarifa base. */
+export const hasTinajaOption = (cabin: Cabin) => cabin.priceTinaja > cabin.priceBase;
 
 export const toKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

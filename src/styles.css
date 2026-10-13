@@ -40,7 +40,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
-  --color-terracotta: var(--terracotta);
+  --color-leaf: var(--leaf);
+  --color-lavender: var(--lavender);
   --color-sage: var(--sage);
   --color-sand: var(--sand);
   --color-chart-1: var(--chart-1);
@@ -59,43 +60,46 @@
 }
 
 :root {
-  /* Paleta Cabañas Nativa Coliumo (tomada del logo y publicaciones) */
+  /* Paleta Lugar Secreto (tomada del flyer: lavanda, morado y hojas) */
   --radius: 0.5rem;
-  --background: #f3ece1; /* crema */
-  --foreground: #3f4234; /* oliva oscuro */
-  --card: #faf6ef;
-  --card-foreground: #3f4234;
-  --popover: #faf6ef;
-  --popover-foreground: #3f4234;
-  --primary: #646d4f; /* verde salvia */
-  --primary-foreground: #faf6ef;
-  --secondary: #e9e1d1; /* arena */
-  --secondary-foreground: #3f4234;
-  --muted: #e9e1d1;
-  --muted-foreground: #6f6a5a;
-  --accent: #dcd6bf;
-  --accent-foreground: #3f4234;
-  --destructive: #b5533f;
-  --destructive-foreground: #faf6ef;
-  --border: #d9cfbd;
-  --input: #d9cfbd;
-  --ring: #646d4f;
-  --terracotta: #b0764a; /* acento, textos en cursiva */
-  --sage: #8b9474;
-  --sand: #e4dccb;
-  --chart-1: #646d4f;
-  --chart-2: #b0764a;
-  --chart-3: #8b9474;
-  --chart-4: #d9b48f;
-  --chart-5: #3f4234;
-  --sidebar: #faf6ef;
-  --sidebar-foreground: #3f4234;
-  --sidebar-primary: #646d4f;
-  --sidebar-primary-foreground: #faf6ef;
-  --sidebar-accent: #e9e1d1;
-  --sidebar-accent-foreground: #3f4234;
-  --sidebar-border: #d9cfbd;
-  --sidebar-ring: #646d4f;
+  --background: #faf9f7;
+  --foreground: #241f33;
+  --card: #ffffff;
+  --card-foreground: #241f33;
+  --popover: #ffffff;
+  --popover-foreground: #241f33;
+  --primary: #46307f; /* morado del logo */
+  --primary-foreground: #ffffff;
+  --secondary: #f1edf8; /* lavanda muy clara */
+  --secondary-foreground: #2e2252;
+  --muted: #f1edf8;
+  --muted-foreground: #645d72;
+  --accent: #e4dcf3;
+  --accent-foreground: #2e2252;
+  --destructive: #b3413a;
+  --destructive-foreground: #ffffff;
+  --border: #e3dde9;
+  --input: #ddd6e6;
+  --ring: #7b62b8;
+  --leaf: #55703f; /* verde de las hojas y la cinta */
+  --lavender: #b7a3dc;
+  --sage: #8fa57c;
+  --sand: #f3efe8;
+  --chart-1: #46307f;
+  --chart-2: #55703f;
+  --chart-3: #b7a3dc;
+  --chart-4: #8fa57c;
+  --chart-5: #241f33;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #241f33;
+  --sidebar-primary: #46307f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1edf8;
+  --sidebar-accent-foreground: #2e2252;
+  --sidebar-border: #e3dde9;
+  --sidebar-ring: #7b62b8;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {
@@ -119,8 +123,38 @@
 @utility text-script {
   font-family: var(--font-script);
   font-weight: 400;
-  color: var(--terracotta);
+  color: var(--primary);
   line-height: 1;
+}
+
+/* Botones y tarjetas presionables: respuesta inmediata al tocar */
+@utility pressable {
+  transition-property: transform, background-color, color, box-shadow, border-color;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out);
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* Aparición suave al hacer scroll (ver useReveal) */
+@utility reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 600ms var(--ease-out),
+    transform 600ms var(--ease-out);
+  &[data-shown] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transform: none;
+    transition: opacity 300ms ease;
+  }
 }
 
 @utility text-hero {

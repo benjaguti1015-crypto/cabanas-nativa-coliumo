@@ -1,16 +1,19 @@
-# Cabañas Nativa Coliumo — Reservas
+# Lugar Secreto Hualqui — Web y reservas
 
-Web de reservas con calendario por cabaña y panel `/admin`. Basada en el proyecto de Cabaña MH.
+Landing (`/`), reservas con calendario (`/reservar`) y panel del dueño (`/admin`).
 
 ## Puesta en marcha
 1. Crear un proyecto en Supabase.
 2. En **SQL Editor** pegar y ejecutar `supabase/schema.sql`.
 3. En **Authentication > Users** crear el usuario del dueño y ejecutar la consulta del final de `schema.sql` para darle rol admin.
-4. Configurar en el hosting (Vercel) las variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`.
-5. `npm install` y `npm run dev`.
+4. En Vercel, importar este repo y agregar las variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`.
+5. Local: `npm install` y `npm run dev`.
 
-## Pendientes (datos reales)
-- `src/lib/booking.ts`: `OWNER_WHATSAPP` y `ADMIN_EMAIL`.
-- Logo real (hoy hay uno provisorio en `src/components/Brand.tsx` y `public/favicon.svg`).
-- Términos y condiciones / reglas de la cabaña (`src/routes/index.tsx`).
-- Fotos y textos para la landing.
+## Datos del negocio
+Están en `src/lib/booking.ts` (teléfono, Instagram, horarios). Precio y capacidad se editan desde `/admin`.
+
+## Pendientes por confirmar con los dueños
+- Horarios de check-in y check-out (hoy 16:00 / 14:00).
+- Si el fono +56 9 4003 7495 recibe WhatsApp.
+- Cantidad de cabañas, y si tinaja, sauna y piscina tienen costo extra.
+- Reglas de la estadía, condiciones de cancelación y correo de contacto.

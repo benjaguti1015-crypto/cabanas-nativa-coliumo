@@ -1,5 +1,5 @@
 -- =====================================================================
--- Cabañas Nativa Coliumo — esquema completo de Supabase
+-- Lugar Secreto Hualqui — esquema completo de Supabase
 -- Pegar entero en Supabase > SQL Editor > New query > Run.
 -- Es idempotente: se puede volver a ejecutar sin perder datos.
 -- =====================================================================
@@ -8,20 +8,21 @@
 
 -- Cada cabaña con su capacidad y tarifas por noche (editables desde /admin).
 CREATE TABLE IF NOT EXISTS public.cabins (
-  id text PRIMARY KEY,                      -- 'chica' | 'grande'
+  id text PRIMARY KEY,                      -- ej: 'lugar-secreto'
   name text NOT NULL,
   base_guests int NOT NULL,                 -- personas incluidas en el precio
   max_guests int NOT NULL,
   price_base int NOT NULL,                  -- solo cabaña, por noche
-  price_tinaja int NOT NULL,                -- cabaña con tinaja, por noche
-  extra_person int NOT NULL DEFAULT 10000,  -- por persona sobre la base, por noche
+  price_tinaja int NOT NULL,                -- con tinaja; si es igual a price_base, la tinaja va incluida
+  extra_person int NOT NULL DEFAULT 0,      -- por persona sobre la base, por noche
   sort int NOT NULL DEFAULT 0,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Una cabaña para 2 personas a $60.000 (editable desde /admin).
+-- Para agregar otra cabaña, copia la fila cambiando id, nombre y sort.
 INSERT INTO public.cabins (id, name, base_guests, max_guests, price_base, price_tinaja, extra_person, sort) VALUES
-  ('chica',  'Cabaña 2 a 3 personas', 2, 3, 60000, 80000,  10000, 1),
-  ('grande', 'Cabaña 4 a 6 personas', 4, 6, 80000, 100000, 10000, 2)
+  ('lugar-secreto', 'Cabaña con tinaja', 2, 2, 60000, 60000, 0, 1)
 ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.reservations (

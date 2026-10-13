@@ -98,7 +98,7 @@ export function BookingCalendar({
                     : disabled
                       ? "text-muted-foreground/40"
                       : hasOffer
-                        ? "bg-terracotta/15 text-foreground ring-1 ring-terracotta/50 hover:bg-terracotta/25"
+                        ? "bg-leaf/15 text-foreground ring-1 ring-leaf/50 hover:bg-leaf/25"
                         : "bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground",
                 disabled ? "cursor-not-allowed" : "cursor-pointer",
               ].join(" ")}
@@ -109,13 +109,13 @@ export function BookingCalendar({
                   <Sparkles
                     className={[
                       "absolute right-1 top-1 h-2.5 w-2.5",
-                      isSelected ? "text-primary-foreground/80" : "text-terracotta",
+                      isSelected ? "text-primary-foreground/80" : "text-leaf",
                     ].join(" ")}
                   />
                   <span
                     className={[
                       "mt-0.5 text-[9px] font-normal tabular-nums leading-none",
-                      isSelected ? "text-primary-foreground/85" : "text-terracotta",
+                      isSelected ? "text-primary-foreground/85" : "text-leaf",
                     ].join(" ")}
                   >
                     {Math.round(offer / 1000)}k
@@ -138,7 +138,7 @@ export function BookingCalendar({
           <span className="h-3 w-3 rounded-full bg-primary" /> Seleccionado
         </span>
         <span className="flex items-center gap-2">
-          <Sparkles className="h-3 w-3 text-terracotta" /> En oferta
+          <Sparkles className="h-3 w-3 text-leaf" /> En oferta
         </span>
       </div>
     </div>

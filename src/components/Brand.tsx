@@ -1,68 +1,39 @@
 import { Heart } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import type { Reservation } from "@/lib/booking";
 
-/**
- * Logo provisorio: círculo con pino y montaña.
- * PENDIENTE: reemplazar por el logo real (public/logo.png) cuando lo envíe el dueño.
- */
-export function LogoMark({ className = "h-11 w-11" }: { className?: string }) {
+/** Logo oficial (recortado del flyer de Lugar Secreto). */
+export function Logo({ className = "h-12 w-auto" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 48 48" className={className} role="img" aria-label="Cabañas Nativa Coliumo">
-      <circle
-        cx="24"
-        cy="24"
-        r="22.5"
-        fill="var(--card)"
-        stroke="var(--foreground)"
-        strokeWidth="1.5"
-      />
-      <path d="M10 33 L20 19 L26 27 L30 22 L38 33 Z" fill="var(--sage)" opacity="0.55" />
-      <path
-        d="M15 33 v-3 M15 30 l-3 0 l3 -5 l3 5 Z M15 25 l-2 0 l2 -4 l2 4 Z"
-        fill="var(--foreground)"
-        stroke="var(--foreground)"
-        strokeWidth="0.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M22 33 v-5 h8 v5 M21 28 l5 -4 l5 4"
-        fill="none"
-        stroke="var(--terracotta)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M9 36 q7 -2 15 0 t15 0" fill="none" stroke="var(--primary)" strokeWidth="1.2" />
-    </svg>
+    <img
+      src="/logo.webp"
+      alt="Lugar Secreto · Cabañas, tinaja y sauna"
+      width={635}
+      height={305}
+      className={className}
+    />
   );
 }
 
-export function Brand({ subtitle = "Coliumo · Cabañas y tinaja" }: { subtitle?: string }) {
+export function Brand() {
   return (
-    <a href="/" className="flex min-w-0 items-center gap-3">
-      <LogoMark className="h-10 w-10 shrink-0 sm:h-12 sm:w-12" />
-      <div className="min-w-0">
-        <p className="truncate leading-tight">
-          <span className="font-display text-base font-semibold tracking-[0.18em] uppercase">
-            Cabañas{" "}
-          </span>
-          <span className="text-script text-2xl">Nativa</span>
-        </p>
-        <p className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:text-xs">
-          {subtitle}
-        </p>
-      </div>
+    <a href="/" className="pressable flex min-w-0 items-center rounded-lg">
+      <Logo className="h-11 w-auto sm:h-12" />
     </a>
   );
 }
 
-/** Separador fino con corazón al centro, como en las publicaciones. */
-export function Divider() {
+/** Separador fino con corazón al centro, como en el flyer. */
+export function Divider({ className = "my-5" }: { className?: string }) {
   return (
-    <div className="mx-auto my-5 flex max-w-xs items-center gap-3 text-terracotta" aria-hidden>
-      <span className="h-px flex-1 bg-foreground/30" />
-      <Heart className="h-4 w-4" />
-      <span className="h-px flex-1 bg-foreground/30" />
+    <div
+      className={`mx-auto flex max-w-xs items-center gap-3 text-lavender ${className}`}
+      aria-hidden
+    >
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent to-lavender" />
+      <Heart className="h-3.5 w-3.5 fill-current" />
+      <span className="h-px flex-1 bg-gradient-to-l from-transparent to-lavender" />
     </div>
   );
 }
@@ -73,10 +44,35 @@ export function StatusBadge({ status }: { status: Reservation["status"] }) {
     <span
       className={[
         "inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-        paid ? "bg-primary/15 text-primary" : "bg-terracotta/15 text-terracotta",
+        paid ? "bg-leaf/15 text-leaf" : "bg-primary/10 text-primary",
       ].join(" ")}
     >
       {paid ? "Pagado" : "Pendiente"}
     </span>
   );
+}
+
+/** Marca el elemento con data-shown cuando entra en pantalla (usar con la clase `reveal`). */
+export function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      el.dataset["shown"] = "";
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          el.dataset["shown"] = "";
+          io.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -60px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
 }

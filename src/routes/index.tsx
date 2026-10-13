@@ -1,742 +1,376 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
 import {
-  Bath,
+  ArrowRight,
+  CalendarDays,
   Clock,
+  Flame,
+  Heart,
   Home,
-  Info,
-  LogIn,
-  LogOut,
-  Mail,
+  MapPin,
   MessageCircle,
-  Minus,
-  Phone,
-  Plus,
-  Search,
-  ShieldCheck,
-  User,
   Users,
-  Wifi,
-  X,
+  Waves,
 } from "lucide-react";
-import { toast } from "sonner";
+import type { ReactNode } from "react";
 
-import { BookingCalendar } from "@/components/BookingCalendar";
-import { Brand, Divider, StatusBadge } from "@/components/Brand";
-import { createReservation, lookupReservation, useCabinData } from "@/lib/cloud";
+import { Brand, Divider, useReveal } from "@/components/Brand";
+import { SiteFooter } from "@/components/SiteFooter";
 import {
-  ADMIN_EMAIL,
   BUSINESS_NAME,
   CHECK_IN,
   CHECK_OUT,
+  DEFAULT_CABINS,
+  LOCATION,
   OWNER_WHATSAPP,
-  basePriceForDay,
-  cabinById,
-  extraGuests,
   formatCLP,
-  formatDay,
-  tinajaExtra,
-  totalForStay,
   whatsappLink,
-  type Cabin,
-  type CabinId,
-  type Reservation,
 } from "@/lib/booking";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Cabañas Nativa Coliumo — Reserva tu estadía" },
+      { title: "Lugar Secreto Hualqui — Cabañas con tinaja caliente" },
       {
         name: "description",
         content:
-          "Reserva online en Cabañas Nativa Coliumo: cabañas para 2 a 3 y 4 a 6 personas, solo cabaña o con tinaja. Disponibilidad en tiempo real.",
+          "Cabañas con tinaja caliente para dos personas en Hualqui. Sauna, piscina y naturaleza. Reserva online.",
       },
-      { property: "og:title", content: "Cabañas Nativa Coliumo — Reserva tu estadía" },
+      { property: "og:title", content: "Lugar Secreto Hualqui — Cabañas con tinaja caliente" },
       {
         property: "og:description",
-        content: "Elige tu cabaña, tus noches y si quieres tinaja. Desde $60.000 la noche.",
+        content: "Relájate, desconéctate y vive momentos inolvidables en un entorno único.",
       },
+      { property: "og:image", content: "/fotos/cabana.webp" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: ClientView,
+  component: Landing,
 });
 
-const LAST_ID_KEY = "nativa_last_booking_id";
+const FROM_PRICE = DEFAULT_CABINS[0]!.priceBase;
 
-function ClientView() {
-  const { data, loading } = useCabinData();
-  const [cabinId, setCabinId] = useState<CabinId>("chica");
-  const [tinaja, setTinaja] = useState(false);
-  const [guests, setGuests] = useState(2);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [form, setForm] = useState({ name: "", phone: "", email: "" });
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+const SERVICES = [
+  { icon: Home, title: "Cabañas", text: "Cómodas y acogedoras" },
+  { icon: Flame, title: "Tinaja", text: "Caliente y privada" },
+  { icon: Heart, title: "Sauna", text: "Relajación total" },
+  { icon: Waves, title: "Piscina", text: "Rodeada de árboles" },
+];
 
-  const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(false);
-  const [lastBookingId, setLastBookingId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return localStorage.getItem(LAST_ID_KEY);
-    } catch {
-      return null;
-    }
-  });
+const GALLERY = [
+  {
+    src: "/fotos/cabana.webp",
+    alt: "Cabaña de madera entre árboles",
+    label: "La cabaña",
+    w: 1080,
+    h: 1080,
+  },
+  {
+    src: "/fotos/living.webp",
+    alt: "Living interior con sofá y cuadros de flores",
+    label: "Interior",
+    w: 1022,
+    h: 1443,
+  },
+  {
+    src: "/fotos/terraza.webp",
+    alt: "Terraza con mesas y quitasoles junto al sauna",
+    label: "Terraza y sauna",
+    w: 960,
+    h: 1280,
+  },
+  {
+    src: "/fotos/piscina.webp",
+    alt: "Piscina rodeada de pasto y árboles",
+    label: "Piscina",
+    w: 853,
+    h: 1280,
+  },
+];
 
-  const [showLookupModal, setShowLookupModal] = useState(false);
-  const [lookupIdInput, setLookupIdInput] = useState("");
-  const [searchedReservation, setSearchedReservation] = useState<Reservation | null>(null);
+// Primera foto grande; la piscina ocupa el ancho restante para cerrar la grilla
+const GALLERY_SPANS = ["col-span-2 row-span-2", "", "", "col-span-2"];
 
-  const cabin = cabinById(data.cabins, cabinId);
-  const offers = data.offers[cabinId];
-  const occupied = useMemo(
-    () => [...data.booked[cabinId], ...data.blocked[cabinId]],
-    [data.booked, data.blocked, cabinId],
+const NAV = [
+  ["#servicios", "Servicios"],
+  ["#galeria", "Galería"],
+  ["#informacion", "Información"],
+] as const;
+
+function Landing() {
+  const waLink = whatsappLink(
+    OWNER_WHATSAPP,
+    `Hola, quiero consultar disponibilidad en ${BUSINESS_NAME}.`,
   );
-
-  const nights = selected.length;
-  const total = useMemo(
-    () => totalForStay(selected, cabin, guests, tinaja, offers),
-    [selected, cabin, guests, tinaja, offers],
-  );
-  const extras = extraGuests(cabin, guests);
-
-  const chooseCabin = (id: CabinId) => {
-    if (id === cabinId) return;
-    const next = cabinById(data.cabins, id);
-    setCabinId(id);
-    setSelected([]); // cada cabaña tiene su propia disponibilidad
-    setGuests(next.baseGuests);
-  };
-
-  /** Cada noche se elige por separado. */
-  const toggle = (day: string) => {
-    setSelected((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort(),
-    );
-  };
-
-  const confirm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (sending) return;
-
-    if (!nights) {
-      toast.error("Selecciona al menos una noche.");
-      return;
-    }
-    if (guests < 1 || guests > cabin.maxGuests) {
-      toast.error(`Esta cabaña recibe máximo ${cabin.maxGuests} personas.`);
-      return;
-    }
-    if (!form.name.trim() || !form.phone.trim() || !form.email.trim()) {
-      toast.error("Completa todos los campos.");
-      return;
-    }
-    const rawPhone = form.phone.trim().replace(/[^0-9]/g, "");
-    if (rawPhone.length < 8) {
-      toast.error("Teléfono no válido.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      toast.error("Correo no válido.");
-      return;
-    }
-    if (!acceptTerms || !acceptPrivacy) {
-      toast.error("Debes aceptar los términos y la política de privacidad.");
-      return;
-    }
-
-    setSending(true);
-    const dates = [...selected].sort();
-    const result = await createReservation({
-      cabinId,
-      name: form.name.trim(),
-      phone: `+56${rawPhone}`,
-      email: form.email.trim(),
-      dates,
-      guests,
-      tinaja,
-      total,
-    });
-    setSending(false);
-
-    if (result.error === "conflict") {
-      setSelected([]);
-      toast.error("Alguien acaba de tomar esas noches. El calendario ya se actualizó.");
-      return;
-    }
-    if (result.error === "spam") {
-      toast.error("Tienes varias reservas pendientes. Escríbenos por WhatsApp para continuar.");
-      return;
-    }
-    if (result.error || !result.id) {
-      toast.error("No pudimos guardar la reserva. Intenta de nuevo.");
-      return;
-    }
-
-    setLastBookingId(result.id);
-    try {
-      localStorage.setItem(LAST_ID_KEY, result.id);
-    } catch {
-      // sin almacenamiento local: el ID igual se muestra en pantalla
-    }
-
-    setSelected([]);
-    setForm({ name: "", phone: "", email: "" });
-    setAcceptTerms(false);
-    setAcceptPrivacy(false);
-    setDone(true);
-    toast.success("¡Reserva solicitada! Guarda tu ID de reserva.");
-  };
-
-  const handleLookup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const queryId = (lookupIdInput || lastBookingId || "").trim();
-    const found = /^[0-9a-f-]{36}$/i.test(queryId) ? await lookupReservation(queryId) : null;
-    setSearchedReservation(found);
-    if (found) toast.success("¡Reserva encontrada!");
-    else toast.error("No se encontró ninguna reserva con ese ID.");
-  };
-
-  const bookingMessage = (id: string | null) =>
-    `Hola, acabo de solicitar una reserva en ${BUSINESS_NAME} (ID: ${id ?? "N/A"}). ¡Quedo atento!`;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b border-border bg-card/70 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-5">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
           <Brand />
-          <button
-            onClick={() => setShowLookupModal(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-medium text-foreground shadow-sm transition-all hover:bg-accent"
+          <nav className="hidden items-center gap-1 md:flex">
+            {NAV.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                className="rounded-full px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+          <a
+            href="/reservar"
+            className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:shadow-lift"
           >
-            <Search className="h-3.5 w-3.5 text-primary" />
-            <span className="hidden sm:inline">Consultar mi reserva</span>
-            <span className="sm:hidden">Mi reserva</span>
-          </button>
+            <CalendarDays className="h-4 w-4" /> Reservar
+          </a>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-5 sm:py-10">
-        <section className="mb-8 text-center sm:mb-10">
-          <h1 className="text-hero text-4xl sm:text-5xl">Reserva tu estadía</h1>
-          <p className="text-script mt-2 text-4xl sm:text-5xl">en Coliumo</p>
-          <Divider />
-          <p className="mx-auto max-w-xl text-sm text-muted-foreground sm:text-base">
-            Elige tu cabaña, marca las noches disponibles y confirma en menos de un minuto.
-          </p>
-          <p className="mt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Wifi className="h-3.5 w-3.5 shrink-0 text-primary" />
-            {loading ? "Cargando disponibilidad…" : "Disponibilidad sincronizada en tiempo real"}
-          </p>
+      <main>
+        {/* Hero */}
+        <section className="relative isolate overflow-hidden">
+          <img
+            src="/fotos/cabana.webp"
+            alt=""
+            width={1080}
+            height={1080}
+            fetchPriority="high"
+            className="absolute inset-0 -z-10 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#1d1530]/55 via-[#1d1530]/45 to-[#1d1530]/80" />
+          <div className="mx-auto flex min-h-[78svh] max-w-6xl flex-col items-center justify-center px-4 py-20 text-center text-white sm:px-6">
+            <p className="text-xs uppercase tracking-[0.35em] text-white/80">{LOCATION}</p>
+            <h1 className="text-hero mt-4 text-5xl leading-none sm:text-7xl">Cabañas con</h1>
+            <p className="font-script mt-1 text-6xl leading-none text-[#d9ccf2] sm:text-8xl">
+              tinaja caliente
+            </p>
+            <p className="mt-6 inline-flex items-center gap-2 bg-leaf px-5 py-2 font-display text-sm uppercase tracking-[0.25em] text-white shadow-soft sm:text-base">
+              Para dos personas
+            </p>
+            <p className="mt-6 max-w-md text-base text-white/90 sm:text-lg">
+              Relájate, desconéctate y vive momentos inolvidables en un entorno único.
+            </p>
+            <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
+              <a
+                href="/reservar"
+                className="pressable inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 font-medium text-primary shadow-lift hover:bg-secondary sm:w-auto"
+              >
+                Ver disponibilidad <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pressable inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/50 px-6 py-3.5 font-medium text-white hover:bg-white/10 sm:w-auto"
+              >
+                <MessageCircle className="h-4 w-4" /> Escríbenos
+              </a>
+            </div>
+            <p className="mt-6 text-sm text-white/80">
+              Desde <strong className="text-white">{formatCLP(FROM_PRICE)}</strong> la noche
+            </p>
+          </div>
+        </section>
 
-          <div className="mt-6 grid gap-3 text-left sm:grid-cols-3">
-            <InfoCard
-              icon={<LogIn className="h-4 w-4" />}
+        {/* Servicios */}
+        <Section id="servicios" eyebrow="Todo para descansar" title="Tu refugio" script="secreto">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {SERVICES.map(({ icon: Icon, title, text }, i) => (
+              <Reveal key={title} delay={i * 60}>
+                <div className="h-full rounded-2xl border border-border bg-card p-5 text-center shadow-soft">
+                  <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-primary">
+                    <Icon className="h-6 w-6" />
+                  </span>
+                  <p className="mt-3 font-sans text-sm font-bold uppercase tracking-wider text-primary">
+                    {title}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+
+        {/* Galería */}
+        <Section id="galeria" eyebrow="Conócenos" title="Un entorno" script="único" tinted>
+          <div className="grid auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[220px] sm:gap-4 lg:grid-cols-4">
+            {GALLERY.map((photo, i) => (
+              <Reveal key={photo.src} delay={i * 60} className={GALLERY_SPANS[i] ?? ""}>
+                <figure className="group relative h-full overflow-hidden rounded-2xl shadow-soft">
+                  <img
+                    src={photo.src}
+                    alt={photo.alt}
+                    width={photo.w}
+                    height={photo.h}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-out)] [@media(hover:hover)]:group-hover:scale-[1.04]"
+                  />
+                  <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8 text-left text-sm font-medium text-white">
+                    {photo.label}
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+
+        {/* Información */}
+        <Section id="informacion" eyebrow="Antes de venir" title="Información" script="útil">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <InfoTile
+              icon={<Clock className="h-5 w-5" />}
               label="Check-in"
               value={`${CHECK_IN} hrs`}
             />
-            <InfoCard
-              icon={<LogOut className="h-4 w-4" />}
+            <InfoTile
+              icon={<Clock className="h-5 w-5" />}
               label="Check-out"
               value={`${CHECK_OUT} hrs`}
             />
-            <InfoCard
-              icon={<Clock className="h-4 w-4" />}
-              label="Desde"
-              value={formatCLP(Math.min(...data.cabins.map((c) => c.priceBase)))}
-              hint="por noche"
+            <InfoTile icon={<Users className="h-5 w-5" />} label="Capacidad" value="2 personas" />
+            <InfoTile
+              icon={<MapPin className="h-5 w-5" />}
+              label="Ubicación"
+              value="Hualqui"
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Lugar Secreto Hualqui")}`}
             />
           </div>
-        </section>
+        </Section>
 
-        {/* 1. Elegir cabaña */}
-        <section className="mb-6">
-          <StepTitle n={1} title="Elige tu cabaña" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {data.cabins.map((c) => (
-              <CabinCard
-                key={c.id}
-                cabin={c}
-                active={c.id === cabinId}
-                onClick={() => chooseCabin(c.id)}
+        {/* Llamado final */}
+        <section className="px-4 pb-20 sm:px-6">
+          <Reveal className="mx-auto max-w-4xl">
+            <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-12 text-center text-primary-foreground shadow-lift sm:px-12">
+              <img
+                src="/fotos/living.webp"
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 -z-0 h-full w-full object-cover opacity-15"
               />
-            ))}
-          </div>
-          <p className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-            Valores por noche. Cada persona adicional sobre la capacidad base suma{" "}
-            {formatCLP(cabin.extraPerson)} por noche.
-          </p>
-        </section>
-
-        {/* 2. Modalidad */}
-        <section className="mb-8">
-          <StepTitle n={2} title="¿Con o sin tinaja?" />
-          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-soft sm:max-w-md">
-            {(
-              [
-                [false, "Solo cabaña", cabin.priceBase, <Home key="h" className="h-4 w-4" />],
-                [true, "Con tinaja", cabin.priceTinaja, <Bath key="b" className="h-4 w-4" />],
-              ] as const
-            ).map(([value, label, price, icon]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setTinaja(value)}
-                aria-pressed={tinaja === value}
-                className={[
-                  "flex flex-col items-center gap-0.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all active:scale-[0.98]",
-                  tinaja === value
-                    ? "bg-primary text-primary-foreground shadow-soft"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <span className="flex items-center gap-1.5">
-                  {icon} {label}
-                </span>
-                <span className="text-xs font-normal opacity-90">{formatCLP(price)} / noche</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* 3. Calendario + datos */}
-        <StepTitle n={3} title="Elige tus noches y completa tus datos" />
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-          <div>
-            <p className="mb-2 text-xs text-muted-foreground">
-              Calendario de: <strong className="text-foreground">{cabin.name}</strong>
-            </p>
-            <BookingCalendar
-              occupied={occupied}
-              selected={selected}
-              onSelect={toggle}
-              offers={offers}
-            />
-          </div>
-
-          <form
-            onSubmit={confirm}
-            className="rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-6"
-          >
-            <h2 className="text-hero text-2xl">Tus datos</h2>
-
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-input bg-background px-4 py-3">
-              <span className="flex min-w-0 items-center gap-2 text-sm">
-                <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0">
-                  Personas
-                  <span className="block text-[11px] text-muted-foreground">
-                    Máximo {cabin.maxGuests} · base {cabin.baseGuests}
-                  </span>
-                </span>
-              </span>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="Quitar persona"
-                  disabled={guests <= 1}
-                  onClick={() => setGuests((g) => Math.max(1, g - 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border transition-colors hover:bg-accent disabled:opacity-40"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="w-6 text-center font-semibold tabular-nums">{guests}</span>
-                <button
-                  type="button"
-                  aria-label="Agregar persona"
-                  disabled={guests >= cabin.maxGuests}
-                  onClick={() => setGuests((g) => Math.min(cabin.maxGuests, g + 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border transition-colors hover:bg-accent disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-3 space-y-3">
-              <Field
-                icon={<User className="h-4 w-4" />}
-                placeholder="Nombre y apellido"
-                value={form.name}
-                onChange={(v) => setForm({ ...form, name: v })}
-              />
-              <div>
-                <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-                  <span className="shrink-0 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                  </span>
-                  <span className="select-none text-sm font-medium text-muted-foreground">+56</span>
-                  <input
-                    required
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="912345678"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, "") })
-                    }
-                    className="w-full min-w-0 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
-                  />
-                </label>
-                <p className="mt-1 pl-1 text-[11px] text-muted-foreground">
-                  Ingresa tu número sin el +56 (ej: 912345678)
+              <div className="relative">
+                <p className="text-hero text-3xl sm:text-4xl">Tu escapada te espera</p>
+                <p className="font-script mt-1 text-5xl text-[#d9ccf2] sm:text-6xl">reserva hoy</p>
+                <p className="mx-auto mt-4 max-w-md text-sm text-primary-foreground/85">
+                  Revisa las noches disponibles en el calendario y asegura tu fecha en menos de un
+                  minuto.
                 </p>
-              </div>
-              <Field
-                icon={<Mail className="h-4 w-4" />}
-                placeholder="Correo electrónico"
-                type="email"
-                value={form.email}
-                onChange={(v) => setForm({ ...form, email: v })}
-              />
-            </div>
-
-            {/* PENDIENTE: reemplazar por las reglas reales de Cabañas Nativa */}
-            <div className="mt-4 rounded-xl border border-border bg-background p-4 text-sm">
-              <p className="mb-2 font-medium">Términos y condiciones de la estadía</p>
-              <p className="text-xs text-muted-foreground">
-                Check-in {CHECK_IN} hrs · Check-out {CHECK_OUT} hrs. La reserva queda confirmada al
-                recibir el pago. Las condiciones de cancelación y reglas de la cabaña se informan al
-                confirmar.
-              </p>
-              <div className="mt-3 space-y-2 border-t border-border pt-3">
-                <label className="flex cursor-pointer items-center gap-2 font-medium">
-                  <input
-                    type="checkbox"
-                    checked={acceptTerms}
-                    onChange={(e) => setAcceptTerms(e.target.checked)}
-                    className="h-4 w-4 rounded border-input accent-primary"
-                  />
-                  <span>Acepto los términos y condiciones</span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 font-medium">
-                  <input
-                    type="checkbox"
-                    checked={acceptPrivacy}
-                    onChange={(e) => setAcceptPrivacy(e.target.checked)}
-                    className="h-4 w-4 rounded border-input accent-primary"
-                  />
-                  <span>
-                    He leído y acepto la{" "}
-                    <a href="#politica-privacidad" className="text-primary underline">
-                      Política de Privacidad
-                    </a>
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Resumen */}
-            <div className="mt-6 rounded-xl bg-secondary p-4 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>
-                  {cabin.name} · {tinaja ? "con tinaja" : "solo cabaña"}
-                </span>
-                <span className="shrink-0">{nights} noche(s)</span>
-              </div>
-              {nights > 0 && (
-                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  {selected.map((d) => {
-                    const base = basePriceForDay(d, cabin, offers);
-                    const isOffer = base < cabin.priceBase;
-                    return (
-                      <li key={d} className="flex justify-between gap-2">
-                        <span className="min-w-0 truncate">{formatDay(d)}</span>
-                        <span className={isOffer ? "shrink-0 text-terracotta" : "shrink-0"}>
-                          {formatCLP(base + (tinaja ? tinajaExtra(cabin) : 0))}
-                          {isOffer ? " · oferta" : ""}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {extras > 0 && nights > 0 && (
-                <div className="mt-2 flex justify-between gap-2 text-xs text-terracotta">
-                  <span>
-                    {extras} persona(s) adicional(es) × {nights} noche(s)
-                  </span>
-                  <span className="shrink-0">{formatCLP(extras * cabin.extraPerson * nights)}</span>
-                </div>
-              )}
-              <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-border pt-3">
-                <span className="font-medium">Total</span>
-                <span className="text-hero shrink-0 text-3xl">{formatCLP(total)}</span>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={sending}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-medium text-primary-foreground transition-all hover:shadow-lift active:scale-[0.99] disabled:opacity-60"
-            >
-              <MessageCircle className="h-4 w-4" />
-              {sending ? "Guardando…" : "Confirmar reserva"}
-            </button>
-
-            {done && (
-              <div className="mt-4 space-y-3 rounded-xl border border-primary/40 bg-secondary p-4 text-center">
-                <p className="text-sm font-medium">¡Reserva solicitada con éxito!</p>
-                {lastBookingId && (
-                  <div className="rounded-lg border border-border bg-background p-2.5 text-xs">
-                    <span className="text-muted-foreground">Tu ID de reserva es:</span>
-                    <p className="mt-0.5 break-all font-mono text-sm font-bold text-primary">
-                      {lastBookingId}
-                    </p>
-                  </div>
-                )}
-                {OWNER_WHATSAPP && (
-                  <a
-                    href={whatsappLink(OWNER_WHATSAPP, bookingMessage(lastBookingId))}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-xs font-medium text-[#0b3d1f] transition-opacity hover:opacity-90"
-                  >
-                    <MessageCircle className="h-4 w-4" /> Avisar por WhatsApp para coordinar el pago
-                  </a>
-                )}
-                <p className="text-xs font-medium text-terracotta">
-                  Mientras no se confirme el pago, las noches siguen disponibles para otros.
-                </p>
-              </div>
-            )}
-          </form>
-        </div>
-
-        {showLookupModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">
-              <div className="flex items-center justify-between">
-                <h3 className="text-hero flex items-center gap-2 text-xl">
-                  <Search className="h-5 w-5 text-primary" /> Consultar reserva
-                </h3>
-                <button
-                  aria-label="Cerrar"
-                  onClick={() => {
-                    setShowLookupModal(false);
-                    setSearchedReservation(null);
-                    setLookupIdInput("");
-                  }}
-                  className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                <a
+                  href="/reservar"
+                  className="pressable mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 font-medium text-primary hover:bg-secondary"
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  <CalendarDays className="h-4 w-4" /> Reservar ahora
+                </a>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Ingresa el ID de tu reserva para ver su estado, fechas y detalles.
-              </p>
-              <form onSubmit={handleLookup} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Ej: f47ac10b-58cc..."
-                  value={lookupIdInput || (lastBookingId ?? "")}
-                  onChange={(e) => setLookupIdInput(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2.5 font-mono text-xs outline-none focus:ring-2 focus:ring-ring"
-                />
-                <button
-                  type="submit"
-                  className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-xs font-medium text-primary-foreground hover:shadow-lift"
-                >
-                  Buscar
-                </button>
-              </form>
-
-              {searchedReservation && (
-                <div className="space-y-3 rounded-xl border border-border bg-secondary p-4 text-xs">
-                  <div className="flex items-center justify-between border-b border-border pb-2">
-                    <span className="text-sm font-semibold">{searchedReservation.name}</span>
-                    <StatusBadge status={searchedReservation.status} />
-                  </div>
-                  <div className="space-y-1.5 text-muted-foreground">
-                    <p>
-                      <strong>Cabaña:</strong>{" "}
-                      {cabinById(data.cabins, searchedReservation.cabinId).name} ·{" "}
-                      {searchedReservation.tinaja ? "con tinaja" : "solo cabaña"}
-                    </p>
-                    <p>
-                      <strong>Personas:</strong> {searchedReservation.guests}
-                    </p>
-                    <p>
-                      <strong>Fechas:</strong>{" "}
-                      <span className="font-bold text-foreground">
-                        {searchedReservation.dates.map(formatDay).join(" · ")}
-                      </span>
-                    </p>
-                    <p>
-                      <strong>Total:</strong>{" "}
-                      <span className="font-bold text-foreground">
-                        {formatCLP(searchedReservation.total)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
-        )}
-
-        <section
-          id="politica-privacidad"
-          className="mt-16 scroll-mt-6 rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8"
-        >
-          <h2 className="text-hero mb-4 flex items-center gap-2 text-2xl">
-            <ShieldCheck className="h-6 w-6 text-primary" /> Política de Privacidad
-          </h2>
-          <div className="space-y-4 text-sm text-muted-foreground">
-            <p>
-              Solo pedimos los datos necesarios para gestionar tu reserva: nombre, teléfono y correo
-              electrónico. Los usamos para coordinar y confirmar tu estadía y contactarte si hay
-              cambios. Nunca se venden ni se comparten con terceros.
-            </p>
-            <p>
-              Tus datos se guardan en una base de datos protegida, con acceso solo para la
-              administración. Puedes pedir en cualquier momento ver, corregir o eliminar tus datos
-              {ADMIN_EMAIL ? (
-                <>
-                  {" "}
-                  escribiendo a <strong className="text-foreground">{ADMIN_EMAIL}</strong>
-                </>
-              ) : (
-                " escribiéndonos por WhatsApp"
-              )}
-              .
-            </p>
-            <p>Al enviar el formulario de reserva aceptas esta política.</p>
-          </div>
+          </Reveal>
         </section>
       </main>
 
-      <footer className="mt-16 border-t border-border bg-card/50 px-4 py-8 text-center text-xs text-muted-foreground">
-        <div className="mx-auto max-w-5xl space-y-2">
-          <p className="text-script text-3xl">¡Nos vemos pronto!</p>
-          <p className="font-medium text-foreground">
-            {BUSINESS_NAME} · © {new Date().getFullYear()}
-          </p>
-          <p>
-            Check-in <strong className="text-foreground">{CHECK_IN} hrs</strong> · Check-out{" "}
-            <strong className="text-foreground">{CHECK_OUT} hrs</strong>
-          </p>
-        </div>
-      </footer>
+      <div className="pb-20 md:pb-0">
+        <SiteFooter />
+      </div>
+
+      {/* Botón flotante de reserva en celular */}
+      <a
+        href="/reservar"
+        className="pressable fixed inset-x-4 bottom-4 z-40 flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-medium text-primary-foreground shadow-lift md:hidden"
+      >
+        <CalendarDays className="h-4 w-4" /> Reservar desde {formatCLP(FROM_PRICE)}
+      </a>
     </div>
   );
 }
 
-function StepTitle({ n, title }: { n: number; title: string }) {
-  return (
-    <h2 className="text-hero mb-3 flex items-center gap-3 text-2xl">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-terracotta font-sans text-sm font-bold text-card">
-        {n}
-      </span>
-      {title}
-    </h2>
-  );
-}
-
-function CabinCard({
-  cabin,
-  active,
-  onClick,
+function Section({
+  id,
+  eyebrow,
+  title,
+  script,
+  tinted = false,
+  children,
 }: {
-  cabin: Cabin;
-  active: boolean;
-  onClick: () => void;
+  id: string;
+  eyebrow: string;
+  title: string;
+  script: string;
+  tinted?: boolean;
+  children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={[
-        "rounded-2xl border p-4 text-left shadow-soft transition-all active:scale-[0.99] sm:p-5",
-        active
-          ? "border-primary bg-card ring-2 ring-primary/40"
-          : "border-border bg-card/70 hover:bg-card",
-      ].join(" ")}
+    <section
+      id={id}
+      className={["scroll-mt-16 px-4 py-16 sm:px-6 sm:py-20", tinted ? "bg-sand" : ""].join(" ")}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-hero text-2xl leading-tight">{cabin.name}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="h-3.5 w-3.5 shrink-0" /> {cabin.baseGuests} a {cabin.maxGuests}{" "}
-            personas
-          </p>
-        </div>
-        <span
-          className={[
-            "mt-1 h-5 w-5 shrink-0 rounded-full border-2",
-            active
-              ? "border-primary bg-primary shadow-[inset_0_0_0_3px_var(--card)]"
-              : "border-border",
-          ].join(" ")}
-        />
+      <div className="mx-auto max-w-6xl">
+        <Reveal className="mb-10 text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-leaf">{eyebrow}</p>
+          <h2 className="text-hero mt-2 text-4xl sm:text-5xl">
+            {title} <span className="text-script text-5xl sm:text-6xl">{script}</span>
+          </h2>
+          <Divider className="mt-4" />
+        </Reveal>
+        {children}
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-xl bg-secondary px-3 py-2">
-          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Solo cabaña</p>
-          <p className="font-semibold">{formatCLP(cabin.priceBase)}</p>
-        </div>
-        <div className="rounded-xl bg-secondary px-3 py-2">
-          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Con tinaja</p>
-          <p className="font-semibold">{formatCLP(cabin.priceTinaja)}</p>
-        </div>
-      </div>
-    </button>
+    </section>
   );
 }
 
-function InfoCard({
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useReveal<HTMLDivElement>();
+  return (
+    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+function InfoTile({
   icon,
   label,
   value,
-  hint,
+  href,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
-  hint?: string;
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        {icon} {label}
+  const body = (
+    <div className="flex h-full items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+        {icon}
+      </span>
+      <div className="min-w-0 text-left">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
+        <p className="text-hero text-2xl">{value}</p>
+        {href && <p className="text-xs text-primary underline">Ver en el mapa</p>}
       </div>
-      <p className="text-hero mt-2 text-2xl">{value}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
-}
-
-function Field({
-  icon,
-  placeholder,
-  value,
-  onChange,
-  type = "text",
-}: {
-  icon: React.ReactNode;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
   return (
-    <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 py-3 focus-within:ring-2 focus-within:ring-ring">
-      <span className="shrink-0 text-muted-foreground">{icon}</span>
-      <input
-        required
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full min-w-0 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
-      />
-    </label>
+    <Reveal>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pressable block h-full rounded-2xl"
+        >
+          {body}
+        </a>
+      ) : (
+        body
+      )}
+    </Reveal>
   );
 }

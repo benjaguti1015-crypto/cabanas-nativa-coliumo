@@ -21,7 +21,7 @@ import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
 import { BookingCalendar } from "@/components/BookingCalendar";
-import { LogoMark } from "@/components/Brand";
+import { Logo } from "@/components/Brand";
 import { ReservationsPanel } from "@/components/ReservationsPanel";
 import {
   addExpense,
@@ -60,7 +60,7 @@ import {
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Panel de administración — Cabañas Nativa Coliumo" },
+      { title: "Panel de administración — Lugar Secreto" },
       { name: "description", content: "Gestiona reservas y disponibilidad de las cabañas." },
       { name: "robots", content: "noindex" },
     ],
@@ -102,7 +102,7 @@ function Login() {
         onSubmit={submit}
         className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8"
       >
-        <LogoMark className="mx-auto h-16 w-16" />
+        <Logo className="mx-auto h-16 w-auto" />
         <h1 className="mt-4 text-center text-hero text-2xl">Acceso administrador</h1>
         <p className="mt-1 text-center text-xs text-muted-foreground">{BUSINESS_NAME}</p>
 
@@ -144,8 +144,8 @@ function Login() {
 }
 
 const PRICE_FIELDS: [keyof Cabin, string][] = [
-  ["priceBase", "Solo cabaña"],
-  ["priceTinaja", "Con tinaja"],
+  ["priceBase", "Precio por noche"],
+  ["priceTinaja", "Con tinaja (igual = incluida)"],
   ["extraPerson", "Persona adicional"],
   ["baseGuests", "Personas incluidas"],
   ["maxGuests", "Capacidad máxima"],
@@ -160,8 +160,17 @@ function RatesForm({ cabin, reload }: { cabin: Cabin; reload: () => Promise<unkn
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const nums = Object.fromEntries(PRICE_FIELDS.map(([k]) => [k, Math.round(Number(values[k]))]));
-    if (PRICE_FIELDS.some(([k]) => !Number.isFinite(nums[k]) || nums[k]! <= 0)) {
-      toast.error("Todos los valores deben ser mayores a cero.");
+    // La persona adicional puede valer 0; el resto debe ser mayor a cero.
+    if (
+      PRICE_FIELDS.some(
+        ([k]) => !Number.isFinite(nums[k]) || nums[k]! < (k === "extraPerson" ? 0 : 1),
+      )
+    ) {
+      toast.error("Revisa los valores: deben ser números mayores a cero.");
+      return;
+    }
+    if (nums["priceTinaja"]! < nums["priceBase"]!) {
+      toast.error("El precio con tinaja no puede ser menor que el precio por noche.");
       return;
     }
     if (nums["baseGuests"]! > nums["maxGuests"]!) {
@@ -207,15 +216,16 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const { data, loading, reload } = useCabinData();
   const { reservations, cabins } = data;
 
-  const [cabinId, setCabinId] = useState<CabinId>("chica");
+  const [pickedCabin, setCabinId] = useState<CabinId>("");
   const [mode, setMode] = useState<"block" | "offer">("block");
   const [offerInput, setOfferInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDates, setEditDates] = useState<string[]>([]);
 
-  const cabin = cabinById(cabins, cabinId);
-  const blocked = data.blocked[cabinId];
-  const offers = data.offers[cabinId];
+  const cabin = cabinById(cabins, pickedCabin);
+  const cabinId = cabin.id;
+  const blocked = data.blocked[cabinId] ?? [];
+  const offers = data.offers[cabinId] ?? {};
   const cabinReservations = reservations.filter((r) => r.cabinId === cabinId);
   const booked = cabinReservations.flatMap((r) => r.dates);
 
@@ -260,7 +270,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       .flatMap((r) => r.dates);
     setEditDates((prev) => {
       if (prev.includes(day)) return prev.filter((d) => d !== day);
-      if (takenByOthers.includes(day) || data.blocked[editing.cabinId].includes(day)) {
+      if (takenByOthers.includes(day) || (data.blocked[editing.cabinId] ?? []).includes(day)) {
         toast.error("Ese día no está libre en esta cabaña.");
         return prev;
       }
@@ -318,7 +328,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       <header className="border-b border-border bg-card/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <LogoMark className="h-10 w-10 shrink-0" />
+            <Logo className="h-10 w-auto shrink-0" />
             <div className="min-w-0">
               <p className="text-hero truncate text-base leading-tight sm:text-lg">
                 Panel de administración
@@ -353,23 +363,25 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         <Finance reservations={reservations} expenses={data.expenses} reload={reload} />
 
         {/* Selector de cabaña: aplica a tarifas, calendario y ofertas */}
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-soft">
-          {cabins.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setCabinId(c.id)}
-              className={[
-                "flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
-                c.id === cabinId
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent",
-              ].join(" ")}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
+        {cabins.length > 1 && (
+          <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-soft">
+            {cabins.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCabinId(c.id)}
+                className={[
+                  "flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
+                  c.id === cabinId
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent",
+                ].join(" ")}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <section className="rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-6">
           <h2 className="flex items-center gap-2 text-hero text-xl">
@@ -393,8 +405,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               </button>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {editCabin.name} · {editing.tinaja ? "con tinaja" : "solo cabaña"} · {editing.guests}{" "}
-              persona(s). Toca los días para quitar o agregar noches.
+              {editCabin.name} · {editing.tinaja ? "con tinaja · " : ""}
+              {editing.guests} persona(s). Toca los días para quitar o agregar noches.
             </p>
             <div className="mt-4 grid gap-5 lg:grid-cols-[1fr_1fr]">
               <BookingCalendar
@@ -402,11 +414,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   ...reservations
                     .filter((r) => r.id !== editing.id && r.cabinId === editing.cabinId)
                     .flatMap((r) => r.dates),
-                  ...data.blocked[editing.cabinId],
+                  ...(data.blocked[editing.cabinId] ?? []),
                 ]}
                 selected={editDates}
                 onSelect={toggleEditDay}
-                offers={data.offers[editing.cabinId]}
+                offers={data.offers[editing.cabinId] ?? {}}
                 allowPast
               />
               <div className="rounded-xl bg-secondary p-4 text-sm">
@@ -470,7 +482,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   value={offerInput}
                   onChange={(e) => setOfferInput(e.target.value.replace(/[^0-9]/g, ""))}
                   inputMode="numeric"
-                  placeholder="Precio solo cabaña"
+                  placeholder="Precio de oferta"
                   className="w-44 rounded-xl border border-input bg-background px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-ring sm:text-sm text-foreground"
                 />
               )}
@@ -487,7 +499,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <p className="mt-3 text-xs text-muted-foreground">
               {mode === "block"
                 ? "Toca un día para marcarlo como ocupado o liberarlo. Los días con reserva no se pueden bloquear."
-                : "Escribe el precio de oferta (solo cabaña; la tinaja suma su diferencia normal) y toca los días. Toca un día en oferta para quitarla."}
+                : "Escribe el precio de oferta por noche y toca los días. Toca un día en oferta para quitarla."}
             </p>
             {Object.keys(offers).length > 0 && (
               <div className="mt-4 rounded-xl border border-border p-4">
@@ -501,7 +513,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                       <li key={day} className="flex items-center justify-between gap-3">
                         <span>{formatDay(day)}</span>
                         <span className="flex items-center gap-3">
-                          <span className="text-terracotta">{formatCLP(value)}</span>
+                          <span className="text-leaf">{formatCLP(value)}</span>
                           <button
                             type="button"
                             aria-label="Quitar oferta"

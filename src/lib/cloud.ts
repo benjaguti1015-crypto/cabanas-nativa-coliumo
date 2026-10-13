@@ -20,14 +20,12 @@ export type CabinData = {
   expenses: Expense[];
 };
 
-const emptyDays = (): DaysByCabin => ({ chica: [], grande: [] });
-
 const EMPTY: CabinData = {
   cabins: DEFAULT_CABINS,
   reservations: [],
-  booked: emptyDays(),
-  blocked: emptyDays(),
-  offers: { chica: {}, grande: {} },
+  booked: {},
+  blocked: {},
+  offers: {},
   expenses: [],
 };
 
@@ -72,10 +70,9 @@ const toReservation = (r: ReservationRow): Reservation => ({
 });
 
 const groupDays = (rows: { cabin_id: CabinId; day: string }[]) => {
-  const out = emptyDays();
-  rows.forEach((r) => out[r.cabin_id]?.push(r.day));
-  out.chica.sort();
-  out.grande.sort();
+  const out: DaysByCabin = {};
+  rows.forEach((r) => (out[r.cabin_id] ??= []).push(r.day));
+  Object.values(out).forEach((days) => days.sort());
   return out;
 };
 
@@ -105,9 +102,9 @@ export async function fetchCabinData(): Promise<CabinData> {
       }))
     : DEFAULT_CABINS;
 
-  const offers: Offers = { chica: {}, grande: {} };
+  const offers: Offers = {};
   ((off.data ?? []) as { cabin_id: CabinId; day: string; price: number }[]).forEach((o) => {
-    if (offers[o.cabin_id]) offers[o.cabin_id][o.day] = o.price;
+    (offers[o.cabin_id] ??= {})[o.day] = o.price;
   });
 
   return {
@@ -155,7 +152,7 @@ export function useCabinData() {
       }, 120);
     };
 
-    const channel = supabase.channel("nativa-sync");
+    const channel = supabase.channel("lugar-secreto-sync");
     ["cabins", "reservations", "blocked_days", "offer_days", "expenses"].forEach((table) => {
       channel.on("postgres_changes", { event: "*", schema: "public", table }, schedule);
     });

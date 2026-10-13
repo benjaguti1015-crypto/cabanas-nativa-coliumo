@@ -78,16 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Cabañas Nativa Coliumo — Reservas" },
+      { title: "Lugar Secreto Hualqui — Cabañas con tinaja" },
       {
         name: "description",
-        content: "Reserva tu cabaña en Coliumo: cabañas para 2 a 6 personas, con o sin tinaja.",
+        content: "Cabañas con tinaja caliente para dos personas en Hualqui.",
       },
-      { name: "author", content: "Cabañas Nativa Coliumo" },
-      { property: "og:title", content: "Cabañas Nativa Coliumo — Reservas" },
+      { name: "author", content: "Lugar Secreto" },
+      { property: "og:title", content: "Lugar Secreto Hualqui — Cabañas con tinaja" },
       {
         property: "og:description",
-        content: "Reserva tu cabaña en Coliumo: cabañas para 2 a 6 personas, con o sin tinaja.",
+        content: "Cabañas con tinaja caliente para dos personas en Hualqui.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -97,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "stylesheet",
