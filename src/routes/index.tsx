@@ -1,25 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
+  ArrowUpRight,
   CalendarDays,
-  Clock,
-  Flame,
-  Heart,
-  Home,
+  Check,
+  Instagram,
+  KeyRound,
   MapPin,
   MessageCircle,
-  Users,
-  Waves,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
-import { Brand, Divider, useReveal } from "@/components/Brand";
+import { Brand, useReveal } from "@/components/Brand";
 import { SiteFooter } from "@/components/SiteFooter";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   BUSINESS_NAME,
   CHECK_IN,
   CHECK_OUT,
   DEFAULT_CABINS,
+  INSTAGRAM,
   LOCATION,
   OWNER_WHATSAPP,
   formatCLP,
@@ -29,16 +34,16 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Lugar Secreto Hualqui — Cabañas con tinaja caliente" },
+      { title: "Lugar Secreto Hualqui — Cabaña con tinaja caliente para dos" },
       {
         name: "description",
         content:
-          "Cabañas con tinaja caliente para dos personas en Hualqui. Sauna, piscina y naturaleza. Reserva online.",
+          "Cabaña para dos con tinaja caliente incluida, sauna y piscina entre árboles en Hualqui. Elige tus noches en el calendario.",
       },
-      { property: "og:title", content: "Lugar Secreto Hualqui — Cabañas con tinaja caliente" },
+      { property: "og:title", content: "Lugar Secreto Hualqui — Cabaña con tinaja caliente" },
       {
         property: "og:description",
-        content: "Relájate, desconéctate y vive momentos inolvidables en un entorno único.",
+        content: "Una noche para dos con tinaja caliente incluida, en Hualqui.",
       },
       { property: "og:image", content: "/fotos/cabana.webp" },
       { property: "og:type", content: "website" },
@@ -49,79 +54,124 @@ export const Route = createFileRoute("/")({
 });
 
 const FROM_PRICE = DEFAULT_CABINS[0]!.priceBase;
+const RESERVAR = "/reservar";
+const MAPS = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Lugar Secreto Hualqui")}`;
 
-const SERVICES = [
-  { icon: Home, title: "Cabañas", text: "Cómodas y acogedoras" },
-  { icon: Flame, title: "Tinaja", text: "Caliente y privada" },
-  { icon: Heart, title: "Sauna", text: "Relajación total" },
-  { icon: Waves, title: "Piscina", text: "Rodeada de árboles" },
-];
+/** Un mensaje distinto por botón: así se sabe desde dónde llegó cada conversación. */
+const wa = {
+  hero: whatsappLink(OWNER_WHATSAPP, `Hola, vi la web de ${BUSINESS_NAME} y tengo una consulta.`),
+  precio: whatsappLink(OWNER_WHATSAPP, `Hola, tengo una duda sobre el precio de ${BUSINESS_NAME}.`),
+  faq: whatsappLink(
+    OWNER_WHATSAPP,
+    `Hola, no encontré mi respuesta en la web de ${BUSINESS_NAME}.`,
+  ),
+};
 
-const GALLERY = [
+const HERO_MICRO = `Desde ${formatCLP(FROM_PRICE)} la noche para 2 · Tinaja incluida`;
+
+const NAV = [
+  ["#el-lugar", "El lugar"],
+  ["#como-funciona", "Cómo reservar"],
+  ["#precio", "Precio"],
+  ["#preguntas", "Preguntas"],
+] as const;
+
+const FEATURES = [
   {
+    n: "01",
+    title: "La tinaja va incluida",
+    text: "Caliente y privada. No se paga aparte: está en el precio de la noche.",
     src: "/fotos/cabana.webp",
     alt: "Cabaña de madera entre árboles",
-    label: "La cabaña",
     w: 1080,
     h: 1080,
   },
   {
-    src: "/fotos/living.webp",
-    alt: "Living interior con sofá y cuadros de flores",
-    label: "Interior",
-    w: 1022,
-    h: 1443,
-  },
-  {
+    n: "02",
+    title: "Sauna y piscina entre árboles",
+    text: "Terraza junto al sauna y una piscina rodeada de pasto. Para el día y para la noche.",
     src: "/fotos/terraza.webp",
     alt: "Terraza con mesas y quitasoles junto al sauna",
-    label: "Terraza y sauna",
     w: 960,
     h: 1280,
   },
   {
-    src: "/fotos/piscina.webp",
-    alt: "Piscina rodeada de pasto y árboles",
-    label: "Piscina",
-    w: 853,
-    h: 1280,
+    n: "03",
+    title: "Una cabaña pensada para dos",
+    text: "Living acogedor y todo listo para que solo te preocupes de descansar.",
+    src: "/fotos/living.webp",
+    alt: "Living interior con sofá y cuadros de flores",
+    w: 1022,
+    h: 1443,
   },
 ];
 
-// Primera foto grande; la piscina ocupa el ancho restante para cerrar la grilla
-const GALLERY_SPANS = ["col-span-2 row-span-2", "", "", "col-span-2"];
+const STEPS = [
+  {
+    icon: CalendarDays,
+    title: "Eliges tus noches",
+    text: "Marcas en el calendario las fechas libres y dejas tus datos. Toma menos de un minuto.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Coordinas el pago",
+    text: "Nos escribes por WhatsApp. Tu reserva queda confirmada al recibir el pago.",
+  },
+  {
+    icon: KeyRound,
+    title: "Llegas y descansas",
+    text: `Check-in desde las ${CHECK_IN} hrs. Te vas al día siguiente hasta las ${CHECK_OUT} hrs.`,
+  },
+];
 
-const NAV = [
-  ["#servicios", "Servicios"],
-  ["#galeria", "Galería"],
-  ["#informacion", "Información"],
-] as const;
+const FAQ = [
+  {
+    q: "¿La tinaja se paga aparte?",
+    a: "No. La tinaja está incluida en el precio de la noche.",
+  },
+  {
+    q: "¿Cuántas personas pueden ir?",
+    a: "La cabaña es para 2 personas.",
+  },
+  {
+    q: "¿A qué hora llego y a qué hora me voy?",
+    a: `Check-in desde las ${CHECK_IN} hrs y check-out hasta las ${CHECK_OUT} hrs.`,
+  },
+  {
+    q: "¿Cuándo queda confirmada mi reserva?",
+    a: "Cuando recibimos el pago. Mientras tanto, las noches siguen disponibles para otras personas, así que te recomendamos coordinarlo apenas reserves.",
+  },
+  {
+    q: "¿Y si necesito cancelar?",
+    a: "Las condiciones de cancelación te las informamos al confirmar. Si tienes una fecha en duda, escríbenos antes de reservar.",
+  },
+  {
+    q: "¿Dónde queda?",
+    a: `En ${LOCATION}. Te enviamos la ubicación exacta al confirmar.`,
+  },
+];
 
 function Landing() {
-  const waLink = whatsappLink(
-    OWNER_WHATSAPP,
-    `Hola, quiero consultar disponibilidad en ${BUSINESS_NAME}.`,
-  );
-
+  const pastHero = usePastHero();
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
           <Brand />
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Secciones">
             {NAV.map(([href, label]) => (
               <a
                 key={href}
                 href={href}
-                className="rounded-full px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full px-3 py-2 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
               >
                 {label}
               </a>
             ))}
           </nav>
           <a
-            href="/reservar"
-            className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:shadow-lift"
+            href={RESERVAR}
+            className="pressable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:bg-primary/90"
           >
             <CalendarDays className="h-4 w-4" /> Reservar
           </a>
@@ -129,191 +179,433 @@ function Landing() {
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="relative isolate overflow-hidden">
-          <img
-            src="/fotos/cabana.webp"
-            alt=""
-            width={1080}
-            height={1080}
-            fetchPriority="high"
-            className="absolute inset-0 -z-10 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#1d1530]/55 via-[#1d1530]/45 to-[#1d1530]/80" />
-          <div className="mx-auto flex min-h-[78svh] max-w-6xl flex-col items-center justify-center px-4 py-20 text-center text-white sm:px-6">
-            <p className="text-xs uppercase tracking-[0.35em] text-white/80">{LOCATION}</p>
-            <h1 className="text-hero mt-4 text-5xl leading-none sm:text-7xl">Cabañas con</h1>
-            <p className="font-script mt-1 text-6xl leading-none text-[#d9ccf2] sm:text-8xl">
-              tinaja caliente
-            </p>
-            <p className="mt-6 inline-flex items-center gap-2 bg-leaf px-5 py-2 font-display text-sm uppercase tracking-[0.25em] text-white shadow-soft sm:text-base">
-              Para dos personas
-            </p>
-            <p className="mt-6 max-w-md text-base text-white/90 sm:text-lg">
-              Relájate, desconéctate y vive momentos inolvidables en un entorno único.
-            </p>
-            <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
-              <a
-                href="/reservar"
-                className="pressable inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 font-medium text-primary shadow-lift hover:bg-secondary sm:w-auto"
-              >
-                Ver disponibilidad <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="pressable inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/50 px-6 py-3.5 font-medium text-white hover:bg-white/10 sm:w-auto"
-              >
-                <MessageCircle className="h-4 w-4" /> Escríbenos
-              </a>
-            </div>
-            <p className="mt-6 text-sm text-white/80">
-              Desde <strong className="text-white">{formatCLP(FROM_PRICE)}</strong> la noche
-            </p>
-          </div>
-        </section>
-
-        {/* Servicios */}
-        <Section id="servicios" eyebrow="Todo para descansar" title="Tu refugio" script="secreto">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            {SERVICES.map(({ icon: Icon, title, text }, i) => (
-              <Reveal key={title} delay={i * 60}>
-                <div className="h-full rounded-2xl border border-border bg-card p-5 text-center shadow-soft">
-                  <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-primary">
-                    <Icon className="h-6 w-6" />
-                  </span>
-                  <p className="mt-3 font-sans text-sm font-bold uppercase tracking-wider text-primary">
-                    {title}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-
-        {/* Galería */}
-        <Section id="galeria" eyebrow="Conócenos" title="Un entorno" script="único" tinted>
-          <div className="grid auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[220px] sm:gap-4 lg:grid-cols-4">
-            {GALLERY.map((photo, i) => (
-              <Reveal key={photo.src} delay={i * 60} className={GALLERY_SPANS[i] ?? ""}>
-                <figure className="group relative h-full overflow-hidden rounded-2xl shadow-soft">
-                  <img
-                    src={photo.src}
-                    alt={photo.alt}
-                    width={photo.w}
-                    height={photo.h}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-out)] [@media(hover:hover)]:group-hover:scale-[1.04]"
-                  />
-                  <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-3 pt-8 text-left text-sm font-medium text-white">
-                    {photo.label}
-                  </figcaption>
-                </figure>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-
-        {/* Información */}
-        <Section id="informacion" eyebrow="Antes de venir" title="Información" script="útil">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <InfoTile
-              icon={<Clock className="h-5 w-5" />}
-              label="Check-in"
-              value={`${CHECK_IN} hrs`}
-            />
-            <InfoTile
-              icon={<Clock className="h-5 w-5" />}
-              label="Check-out"
-              value={`${CHECK_OUT} hrs`}
-            />
-            <InfoTile icon={<Users className="h-5 w-5" />} label="Capacidad" value="2 personas" />
-            <InfoTile
-              icon={<MapPin className="h-5 w-5" />}
-              label="Ubicación"
-              value="Hualqui"
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Lugar Secreto Hualqui")}`}
-            />
-          </div>
-        </Section>
-
-        {/* Llamado final */}
-        <section className="px-4 pb-20 sm:px-6">
-          <Reveal className="mx-auto max-w-4xl">
-            <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-12 text-center text-primary-foreground shadow-lift sm:px-12">
-              <img
-                src="/fotos/living.webp"
-                alt=""
-                loading="lazy"
-                className="absolute inset-0 -z-0 h-full w-full object-cover opacity-15"
-              />
-              <div className="relative">
-                <p className="text-hero text-3xl sm:text-4xl">Tu escapada te espera</p>
-                <p className="font-script mt-1 text-5xl text-[#d9ccf2] sm:text-6xl">reserva hoy</p>
-                <p className="mx-auto mt-4 max-w-md text-sm text-primary-foreground/85">
-                  Revisa las noches disponibles en el calendario y asegura tu fecha en menos de un
-                  minuto.
-                </p>
-                <a
-                  href="/reservar"
-                  className="pressable mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 font-medium text-primary hover:bg-secondary"
-                >
-                  <CalendarDays className="h-4 w-4" /> Reservar ahora
-                </a>
-              </div>
-            </div>
-          </Reveal>
-        </section>
+        <Hero />
+        <Features />
+        <Gallery />
+        <HowItWorks />
+        <SocialProof />
+        <Pricing />
+        <Faq />
+        <FinalCta />
       </main>
 
       <div className="pb-20 md:pb-0">
         <SiteFooter />
       </div>
 
-      {/* Botón flotante de reserva en celular */}
+      {/* Botón fijo en celular: mismo destino que el Hero */}
       <a
-        href="/reservar"
-        className="pressable fixed inset-x-4 bottom-4 z-40 flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-medium text-primary-foreground shadow-lift md:hidden"
+        href={RESERVAR}
+        aria-hidden={!pastHero}
+        tabIndex={pastHero ? undefined : -1}
+        data-visible={pastHero || undefined}
+        className="sticky-cta pressable fixed inset-x-4 bottom-4 z-40 flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-medium text-primary-foreground shadow-lift md:hidden"
       >
-        <CalendarDays className="h-4 w-4" /> Reservar desde {formatCLP(FROM_PRICE)}
+        <CalendarDays className="h-4 w-4" /> Ver noches disponibles
       </a>
     </div>
   );
 }
 
-function Section({
-  id,
-  eyebrow,
-  title,
-  script,
-  tinted = false,
-  children,
-}: {
-  id: string;
-  eyebrow: string;
-  title: string;
-  script: string;
-  tinted?: boolean;
-  children: ReactNode;
-}) {
+/* ─────────────────────────── 1 · Hero ─────────────────────────── */
+
+function Hero() {
   return (
-    <section
-      id={id}
-      className={["scroll-mt-16 px-4 py-16 sm:px-6 sm:py-20", tinted ? "bg-sand" : ""].join(" ")}
-    >
-      <div className="mx-auto max-w-6xl">
-        <Reveal className="mb-10 text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-leaf">{eyebrow}</p>
-          <h2 className="text-hero mt-2 text-4xl sm:text-5xl">
-            {title} <span className="text-script text-5xl sm:text-6xl">{script}</span>
-          </h2>
-          <Divider className="mt-4" />
-        </Reveal>
-        {children}
+    <section id="inicio" className="relative isolate overflow-hidden bg-night text-white">
+      <img
+        src="/fotos/cabana.webp"
+        alt=""
+        width={1080}
+        height={1080}
+        fetchPriority="high"
+        className="hero-photo absolute inset-0 -z-10 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-night via-night/55 to-night/25" />
+
+      <div className="mx-auto flex min-h-[88svh] max-w-6xl flex-col justify-end px-4 pb-14 pt-28 sm:px-6 sm:pb-20">
+        <p
+          className="hero-in flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-white/75"
+          style={d(0)}
+        >
+          <MapPin className="h-3.5 w-3.5" /> {LOCATION}
+        </p>
+
+        <h1
+          className="hero-in text-hero mt-5 max-w-3xl text-[clamp(2.75rem,8vw,6rem)] leading-[0.95]"
+          style={d(1)}
+        >
+          Una noche en tinaja caliente,{" "}
+          <span className="font-script text-[1.15em] font-normal text-lavender">
+            solo para ustedes dos
+          </span>
+        </h1>
+
+        <p className="hero-in mt-6 max-w-md text-base text-white/85 sm:text-lg" style={d(2)}>
+          Cabaña privada con tinaja, sauna y piscina entre árboles. Eliges tus noches en el
+          calendario y listo.
+        </p>
+
+        <div className="hero-in mt-8 flex flex-col gap-4 sm:flex-row sm:items-start" style={d(3)}>
+          <div className="flex flex-col gap-3">
+            <a
+              href={RESERVAR}
+              className="pressable group inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 font-medium text-primary shadow-lift hover:bg-secondary"
+            >
+              Ver noches disponibles
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 ease-[var(--ease-out)] [@media(hover:hover)]:group-hover:translate-x-0.5" />
+            </a>
+            <p className="text-center text-sm text-white/70 sm:text-left">{HERO_MICRO}</p>
+          </div>
+          <a
+            href={wa.hero}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pressable inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm text-white/85 underline-offset-4 hover:text-white hover:underline sm:py-4"
+          >
+            <MessageCircle className="h-4 w-4" /> ¿Dudas? Escríbenos
+          </a>
+        </div>
       </div>
     </section>
+  );
+}
+
+/** true cuando el hero ya salió de pantalla (para mostrar el botón fijo del celular). */
+function usePastHero() {
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    const hero = document.getElementById("inicio");
+    if (!hero || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setPast(!e?.isIntersecting), {
+      rootMargin: "0px 0px -40% 0px",
+    });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
+  return past;
+}
+
+const d = (i: number): CSSProperties => ({ "--d": `${120 + i * 70}ms` }) as CSSProperties;
+
+/* ─────────────────────────── 3 · Producto ─────────────────────────── */
+
+function Features() {
+  return (
+    <section id="el-lugar" className="scroll-mt-16 px-4 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-6xl">
+        <SectionHead eyebrow="El lugar" title="Lo que te espera al llegar" />
+
+        <div className="mt-14 space-y-16 sm:space-y-24">
+          {FEATURES.map((f, i) => (
+            <article key={f.n} className="grid items-center gap-6 sm:gap-10 md:grid-cols-12">
+              <Reveal variant="clip" className={`md:col-span-7 ${i % 2 ? "md:order-2" : ""}`}>
+                <div className="overflow-hidden rounded-3xl shadow-soft">
+                  <img
+                    src={f.src}
+                    alt={f.alt}
+                    width={f.w}
+                    height={f.h}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </div>
+              </Reveal>
+              <Reveal className={`md:col-span-5 ${i % 2 ? "md:order-1" : ""}`} delay={80}>
+                <p className="font-display text-6xl leading-none text-lavender">{f.n}</p>
+                <h3 className="text-hero mt-3 text-3xl sm:text-4xl">{f.title}</h3>
+                <p className="mt-3 max-w-sm text-muted-foreground">{f.text}</p>
+                {i === 0 && (
+                  <a
+                    href={RESERVAR}
+                    className="pressable mt-6 inline-flex items-center gap-1.5 rounded-full text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Ver fechas libres <ArrowRight className="h-4 w-4" />
+                  </a>
+                )}
+              </Reveal>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── Galería ─────────────────────────── */
+
+function Gallery() {
+  return (
+    <section aria-label="Fotos del lugar" className="overflow-hidden pb-20 sm:pb-28">
+      <Reveal variant="clip" className="mx-auto max-w-6xl px-4 sm:px-6">
+        <figure className="relative overflow-hidden rounded-3xl">
+          <img
+            src="/fotos/piscina.webp"
+            alt="Piscina rodeada de pasto y árboles"
+            width={853}
+            height={1280}
+            loading="lazy"
+            className="aspect-[4/5] w-full object-cover sm:aspect-[21/9]"
+          />
+          <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night/80 to-transparent px-6 pb-6 pt-16 text-white sm:px-10 sm:pb-8">
+            <p className="text-hero text-2xl sm:text-4xl">La piscina, rodeada de árboles</p>
+            <p className="mt-1 text-sm text-white/75">Fotos reales del lugar</p>
+          </figcaption>
+        </figure>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ─────────────────────────── 6 · Cómo funciona ─────────────────────────── */
+
+function HowItWorks() {
+  return (
+    <section id="como-funciona" className="scroll-mt-16 bg-sand px-4 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-6xl">
+        <SectionHead eyebrow="Cómo reservar" title="Tres pasos y estás en la tinaja" />
+
+        <Reveal className="relative mt-14">
+          {/* Línea que se dibuja al entrar en pantalla (solo escritorio) */}
+          <span
+            aria-hidden
+            className="draw-line absolute left-[16.66%] right-[16.66%] top-7 hidden h-px bg-lavender md:block"
+          />
+          <ol className="grid gap-10 md:grid-cols-3 md:gap-6">
+            {STEPS.map(({ icon: Icon, title, text }, i) => (
+              <li
+                key={title}
+                className="step relative flex gap-5 md:flex-col md:items-center md:text-center"
+                style={{ "--i": i } as CSSProperties}
+              >
+                <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-lavender bg-background text-primary shadow-soft">
+                  <Icon className="h-5 w-5" />
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {i + 1}
+                  </span>
+                </span>
+                <div>
+                  <h3 className="text-hero text-2xl">{title}</h3>
+                  <p className="mt-2 max-w-xs text-sm text-muted-foreground">{text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
+
+        <Reveal className="mt-14 text-center">
+          <a
+            href={RESERVAR}
+            className="pressable inline-flex items-center gap-2 rounded-full bg-primary px-7 py-4 font-medium text-primary-foreground shadow-soft hover:bg-primary/90"
+          >
+            <CalendarDays className="h-4 w-4" /> Elegir mis noches
+          </a>
+          <p className="mt-3 text-xs text-muted-foreground">Ves al tiro qué fechas están libres</p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── 8 · Pruebas sociales ─────────────────────────── */
+// PENDIENTE: agregar testimonios reales de huéspedes (con su permiso). No inventar.
+
+function SocialProof() {
+  return (
+    <section className="px-4 py-20 sm:px-6 sm:py-28">
+      <Reveal className="mx-auto grid max-w-6xl items-center gap-8 md:grid-cols-2">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-leaf">Sin filtros de catálogo</p>
+          <h2 className="text-hero mt-3 text-4xl sm:text-5xl">
+            Mira cómo es en verdad antes de venir
+          </h2>
+          <p className="mt-4 max-w-md text-muted-foreground">
+            En nuestro Instagram publicamos el lugar tal cual es: la cabaña, la tinaja, el sauna y
+            la piscina.
+          </p>
+          <a
+            href={`https://instagram.com/${INSTAGRAM}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pressable mt-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium hover:border-primary/40"
+          >
+            <Instagram className="h-4 w-4 text-primary" /> Ver @{INSTAGRAM}
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </a>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <img
+            src="/fotos/living.webp"
+            alt="Interior de la cabaña"
+            width={1022}
+            height={1443}
+            loading="lazy"
+            className="aspect-[3/4] w-full rounded-2xl object-cover shadow-soft"
+          />
+          <img
+            src="/fotos/terraza.webp"
+            alt="Terraza junto al sauna"
+            width={960}
+            height={1280}
+            loading="lazy"
+            className="mt-10 aspect-[3/4] w-full rounded-2xl object-cover shadow-soft"
+          />
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ─────────────────────────── 9 · Precio ─────────────────────────── */
+
+function Pricing() {
+  const items = [
+    "Cabaña para 2 personas",
+    "Tinaja caliente incluida",
+    `Check-in ${CHECK_IN} · Check-out ${CHECK_OUT}`,
+  ];
+  return (
+    <section id="precio" className="scroll-mt-16 bg-night px-4 py-20 text-white sm:px-6 sm:py-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
+        <Reveal>
+          <p className="text-xs uppercase tracking-[0.3em] text-lavender">Precio claro</p>
+          <h2 className="text-hero mt-3 text-4xl sm:text-5xl">
+            Un precio por noche. Sin sorpresas.
+          </h2>
+          <p className="mt-4 max-w-md text-white/70">
+            Lo que ves en el calendario es lo que pagas. Algunas fechas tienen precio de oferta.
+          </p>
+        </Reveal>
+
+        <Reveal delay={80}>
+          <div className="rounded-3xl bg-white p-7 text-foreground shadow-lift sm:p-9">
+            <p className="text-sm text-muted-foreground">Cabaña con tinaja</p>
+            <p className="mt-1 flex items-baseline gap-2">
+              <span className="text-sm text-muted-foreground">desde</span>
+              <span className="text-hero text-5xl sm:text-6xl">{formatCLP(FROM_PRICE)}</span>
+              <span className="text-sm text-muted-foreground">/ noche</span>
+            </p>
+            <ul className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
+              {items.map((t) => (
+                <li key={t} className="flex items-center gap-3">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-leaf/15 text-leaf">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={RESERVAR}
+              className="pressable mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Reservar mis noches <ArrowRight className="h-4 w-4" />
+            </a>
+            <a
+              href={wa.precio}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> Tengo una duda sobre el precio
+            </a>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── 10 · Preguntas frecuentes ─────────────────────────── */
+
+function Faq() {
+  return (
+    <section id="preguntas" className="scroll-mt-16 px-4 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-12">
+        <Reveal className="md:col-span-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-leaf">Preguntas</p>
+          <h2 className="text-hero mt-3 text-4xl sm:text-5xl">
+            Lo que nos preguntan antes de reservar
+          </h2>
+          <a
+            href={wa.faq}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pressable mt-6 inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-medium hover:border-primary/40"
+          >
+            <MessageCircle className="h-4 w-4 text-primary" /> No encontré mi respuesta
+          </a>
+        </Reveal>
+
+        <Reveal className="md:col-span-8" delay={80}>
+          <Accordion type="single" collapsible className="border-t border-border">
+            {FAQ.map(({ q, a }, i) => (
+              <AccordionItem key={q} value={`q${i}`} className="border-border">
+                <AccordionTrigger className="py-5 text-base font-medium hover:no-underline sm:text-lg">
+                  {q}
+                </AccordionTrigger>
+                <AccordionContent className="pb-5 pr-8 text-muted-foreground">
+                  {a}
+                  {q.startsWith("¿Dónde") && (
+                    <a
+                      href={MAPS}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 text-primary underline underline-offset-4"
+                    >
+                      Ver en el mapa
+                    </a>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── 11 · CTA final ─────────────────────────── */
+
+function FinalCta() {
+  return (
+    <section className="px-4 pb-20 sm:px-6 sm:pb-28">
+      <Reveal variant="clip" className="mx-auto max-w-6xl">
+        <div className="relative isolate overflow-hidden rounded-3xl bg-primary px-6 py-16 text-center text-primary-foreground sm:px-12 sm:py-24">
+          <img
+            src="/fotos/cabana.webp"
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 -z-10 h-full w-full object-cover opacity-20"
+          />
+          <h2 className="text-hero mx-auto max-w-2xl text-4xl sm:text-6xl">
+            Elige tu noche.{" "}
+            <span className="font-script font-normal text-lavender">La tinaja va incluida.</span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-md text-primary-foreground/80">
+            Revisa qué fechas están libres y deja tu reserva lista en menos de un minuto.
+          </p>
+          <a
+            href={RESERVAR}
+            className="pressable mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 font-medium text-primary shadow-lift hover:bg-secondary"
+          >
+            Ver noches disponibles <ArrowRight className="h-4 w-4" />
+          </a>
+          <p className="mt-4 text-sm text-primary-foreground/70">{HERO_MICRO}</p>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ─────────────────────────── Piezas ─────────────────────────── */
+
+function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <Reveal className="max-w-2xl">
+      <p className="text-xs uppercase tracking-[0.3em] text-leaf">{eyebrow}</p>
+      <h2 className="text-hero mt-3 text-4xl sm:text-5xl">{title}</h2>
+    </Reveal>
   );
 }
 
@@ -321,56 +613,21 @@ function Reveal({
   children,
   className = "",
   delay = 0,
+  variant = "rise",
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
+  variant?: "rise" | "clip";
 }) {
   const ref = useReveal<HTMLDivElement>();
   return (
-    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+    <div
+      ref={ref}
+      className={`${variant === "clip" ? "reveal-clip" : "reveal"} ${className}`}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+    >
       {children}
     </div>
-  );
-}
-
-function InfoTile({
-  icon,
-  label,
-  value,
-  href,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  href?: string;
-}) {
-  const body = (
-    <div className="flex h-full items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-        {icon}
-      </span>
-      <div className="min-w-0 text-left">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
-        <p className="text-hero text-2xl">{value}</p>
-        {href && <p className="text-xs text-primary underline">Ver en el mapa</p>}
-      </div>
-    </div>
-  );
-  return (
-    <Reveal>
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="pressable block h-full rounded-2xl"
-        >
-          {body}
-        </a>
-      ) : (
-        body
-      )}
-    </Reveal>
   );
 }
