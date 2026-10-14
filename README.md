@@ -14,6 +14,7 @@ Están en `src/lib/booking.ts` (teléfono, Instagram, horarios). Precio y capaci
 
 ## Pendientes por confirmar con los dueños
 - Horarios de check-in y check-out (hoy 16:00 / 14:00).
-- Si el fono +56 9 4003 7495 recibe WhatsApp.
+- WhatsApp: hoy usa el número provisorio +56 9 4942 4791 (`OWNER_WHATSAPP` en `src/lib/booking.ts`). Cambiarlo por el de los dueños.
+- Testimonios reales de huéspedes (con permiso) para la sección de pruebas sociales de la landing.
 - Cantidad de cabañas, y si tinaja, sauna y piscina tienen costo extra.
 - Reglas de la estadía, condiciones de cancelación y correo de contacto.
