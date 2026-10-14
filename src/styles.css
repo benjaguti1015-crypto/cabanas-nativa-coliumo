@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-display: "Cormorant Garamond", Georgia, serif;
-  --font-script: "Allura", "Cormorant Garamond", cursive;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-script: "Allura", Georgia, cursive;
   --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
   --shadow-soft: 0 10px 30px -12px rgba(63, 66, 52, 0.12);
   --shadow-lift: 0 20px 50px -20px rgba(63, 66, 52, 0.25);
@@ -250,8 +250,9 @@
 
 @utility text-hero {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  font-weight: 450;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
 }
 
 @utility shadow-soft {

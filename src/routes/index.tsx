@@ -222,7 +222,7 @@ function Hero() {
       />
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-night via-night/55 to-night/25" />
 
-      <div className="mx-auto flex min-h-[88svh] max-w-6xl flex-col justify-end px-4 pb-14 pt-28 sm:px-6 sm:pb-20">
+      <div className="mx-auto flex min-h-[calc(100svh-4rem)] max-w-6xl flex-col justify-center px-4 py-12 sm:px-6 sm:py-14">
         <p
           className="hero-in flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-white/75"
           style={d(0)}
@@ -231,21 +231,23 @@ function Hero() {
         </p>
 
         <h1
-          className="hero-in text-hero mt-5 max-w-3xl text-[clamp(2.75rem,8vw,6rem)] leading-[0.95]"
+          className="hero-in text-hero mt-4 max-w-3xl text-[clamp(2.4rem,min(6.5vw,8.5svh),4.75rem)] leading-[1.02]"
           style={d(1)}
         >
           Una noche en tinaja caliente,{" "}
-          <span className="font-script text-[1.15em] font-normal text-lavender">
-            solo para ustedes dos
-          </span>
+          <em className="font-normal text-lavender">solo para ustedes dos</em>
         </h1>
 
-        <p className="hero-in mt-6 max-w-md text-base text-white/85 sm:text-lg" style={d(2)}>
-          Cabaña privada con tinaja, sauna y piscina entre árboles. Eliges tus noches en el
-          calendario y listo.
+        <p
+          className="hero-in mt-5 max-w-xl text-lg leading-relaxed text-white/90 sm:text-xl"
+          style={d(2)}
+        >
+          Tu cabaña privada en Hualqui con{" "}
+          <strong className="font-semibold text-white">tinaja caliente incluida</strong>, sauna y
+          piscina entre árboles. Desconéctate sin salir del Biobío.
         </p>
 
-        <div className="hero-in mt-8 flex flex-col gap-4 sm:flex-row sm:items-start" style={d(3)}>
+        <div className="hero-in mt-7 flex flex-col gap-4 sm:flex-row sm:items-start" style={d(3)}>
           <div className="flex flex-col gap-3">
             <a
               href={RESERVAR}
@@ -579,8 +581,7 @@ function FinalCta() {
             className="absolute inset-0 -z-10 h-full w-full object-cover opacity-20"
           />
           <h2 className="text-hero mx-auto max-w-2xl text-4xl sm:text-6xl">
-            Elige tu noche.{" "}
-            <span className="font-script font-normal text-lavender">La tinaja va incluida.</span>
+            Elige tu noche. <em className="font-normal text-lavender">La tinaja va incluida.</em>
           </h2>
           <p className="mx-auto mt-5 max-w-md text-primary-foreground/80">
             Revisa qué fechas están libres y deja tu reserva lista en menos de un minuto.
